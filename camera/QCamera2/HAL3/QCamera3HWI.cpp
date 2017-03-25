@@ -247,14 +247,14 @@ const QCamera3HardwareInterface::QCameraMap<
     { ANDROID_LENS_STATE_MOVING,        CAM_AF_LENS_STATE_MOVING}
 };
 
-const int32_t available_thumbnail_sizes[] = {0, 0,
-                                             176, 144,
+const int32_t available_thumbnail_sizes[] = {176, 144,
                                              240, 144,
                                              256, 144,
                                              240, 160,
                                              256, 154,
                                              240, 240,
-                                             320, 240};
+                                             320, 240,
+                                               0, 0  };
 
 const QCamera3HardwareInterface::QCameraMap<
         camera_metadata_enum_android_sensor_test_pattern_mode_t,
@@ -402,10 +402,17 @@ QCamera3HardwareInterface::QCamera3HardwareInterface(uint32_t cameraId,
     // TODO: hardcode for now until mctl add support for min_num_pp_bufs
     //TBD - To see if this hardcoding is needed. Check by printing if this is filled by mctl to 3
     gCamCapability[cameraId]->min_num_pp_bufs = 3;
+    pthread_condattr_t mCondAttr;
 
-    pthread_cond_init(&mBuffersCond, NULL);
+    pthread_condattr_init(&mCondAttr);
+    pthread_condattr_setclock(&mCondAttr, CLOCK_MONOTONIC);
 
-    pthread_cond_init(&mRequestCond, NULL);
+    pthread_cond_init(&mBuffersCond, &mCondAttr);
+
+    pthread_cond_init(&mRequestCond, &mCondAttr);
+
+    pthread_condattr_destroy(&mCondAttr);
+
     mPendingLiveRequest = 0;
     mCurrentRequestId = -1;
     pthread_mutex_init(&mMutex, NULL);
@@ -608,7 +615,6 @@ QCamera3HardwareInterface::~QCamera3HardwareInterface()
     m_perfLock.lock_deinit();
 
     pthread_cond_destroy(&mRequestCond);
-
     pthread_cond_destroy(&mBuffersCond);
 
     pthread_mutex_destroy(&mMutex);
@@ -1759,6 +1765,7 @@ int QCamera3HardwareInterface::configureStreamsPerfLocked(
                 "stream size : %d x %d, stream rotation = %d",
                  newStream->stream_type, newStream->format,
                 newStream->width, newStream->height, newStream->rotation);
+
         //if the stream is in the mStreamList validate it
         bool stream_exists = false;
         for (List<stream_info_t*>::iterator it=mStreamInfo.begin();
@@ -2205,7 +2212,8 @@ int QCamera3HardwareInterface::configureStreamsPerfLocked(
 
                 default:
                     LOGE("not a supported format 0x%x", newStream->format);
-                    break;
+                    pthread_mutex_unlock(&mMutex);
+                    return -EINVAL;
                 }
             } else if (newStream->stream_type == CAMERA3_STREAM_INPUT) {
                 newStream->max_buffers = MAX_INFLIGHT_REPROCESS_REQUESTS;
@@ -3056,12 +3064,14 @@ void QCamera3HardwareInterface::handleMetadataWithLock(
 
         // Check whether any stream buffer corresponding to this is dropped or not
         // If dropped, then send the ERROR_BUFFER for the corresponding stream
+        bool dropFrame = false;
         if (p_cam_frame_drop) {
             /* Clear notify_msg structure */
             camera3_notify_msg_t notify_msg;
             memset(&notify_msg, 0, sizeof(camera3_notify_msg_t));
             for (List<RequestedBufferInfo>::iterator j = i->buffers.begin();
                     j != i->buffers.end(); j++) {
+                dropFrame = false;
                 QCamera3ProcessingChannel *channel = (QCamera3ProcessingChannel *)j->stream->priv;
                 uint32_t streamID = channel->getStreamID(channel->getStreamTypeMask());
                 for (uint32_t k = 0; k < p_cam_frame_drop->num_streams; k++) {
@@ -3144,7 +3154,7 @@ void QCamera3HardwareInterface::handleMetadataWithLock(
                     internalPproc = true;
                     QCamera3ProcessingChannel *channel =
                             (QCamera3ProcessingChannel *)iter->stream->priv;
-                    channel->queueReprocMetadata(metadata_buf);
+                    channel->queueReprocMetadata(metadata_buf, i->frame_number, dropFrame);
                     break;
                 }
             }
@@ -3155,7 +3165,7 @@ void QCamera3HardwareInterface::handleMetadataWithLock(
                     internalPproc = true;
                     QCamera3ProcessingChannel *channel =
                             (QCamera3ProcessingChannel *)itr->stream->priv;
-                    channel->queueReprocMetadata(metadata_buf);
+                    channel->queueReprocMetadata(metadata_buf, i->frame_number, dropFrame);
                     break;
                 }
             }
@@ -3232,6 +3242,18 @@ void QCamera3HardwareInterface::handleMetadataWithLock(
                             }
                         }
                         j->buffer->status |= mPendingBuffersMap.getBufErrStatus(j->buffer->buffer);
+                        if (j->buffer->status & CAMERA3_BUFFER_STATUS_ERROR) {
+                            LOGI("CAMERA3_BUFFER_STATUS_ERROR frame_number=%u,"
+                                    "buffer=%p mCameraId: %d",
+                                    frame_number, j->buffer->buffer, mCameraId);
+                            camera3_notify_msg_t notify_msg;
+                            memset(&notify_msg, 0, sizeof(camera3_notify_msg_t));
+                            notify_msg.type = CAMERA3_MSG_ERROR;
+                            notify_msg.message.error.frame_number = frame_number;
+                            notify_msg.message.error.error_code = CAMERA3_MSG_ERROR_BUFFER ;
+                            notify_msg.message.error.error_stream = j->stream;
+                            orchestrateNotify(&notify_msg);
+                        }
                         mPendingBuffersMap.removeBuf(j->buffer->buffer);
                         result_buffers[result_buffers_idx++] = *(j->buffer);
                         free(j->buffer);
@@ -3470,7 +3492,7 @@ void QCamera3HardwareInterface::handleBufferWithLock(
         }
         buffer->status |= mPendingBuffersMap.getBufErrStatus(buffer->buffer);
         result.output_buffers = buffer;
-        LOGH("result frame_number = %d, buffer = %p",
+        LOGE("result frame_number = %d, buffer = %p",
                  frame_number, buffer->buffer);
 
         mPendingBuffersMap.removeBuf(buffer->buffer);
@@ -3505,6 +3527,10 @@ void QCamera3HardwareInterface::handleBufferWithLock(
                }
             }
             buffer->status |= mPendingBuffersMap.getBufErrStatus(buffer->buffer);
+            if (buffer->status & CAMERA3_BUFFER_STATUS_ERROR) {
+                LOGI("Input buffer CAMERA3_BUFFER_STATUS_ERROR frame_number=%u, buffer=%p",
+                        frame_number, buffer->buffer);
+            }
             mPendingBuffersMap.removeBuf(buffer->buffer);
 
             camera3_capture_result result;
@@ -4471,6 +4497,11 @@ no_error:
         const camera3_stream_buffer_t& output = request->output_buffers[i];
         QCamera3Channel *channel = (QCamera3Channel *)output.stream->priv;
 
+        if (channel == NULL) {
+            ALOGE("%s: invalid channel pointer for stream", __func__);
+            continue;
+        }
+
         if (output.stream->format == HAL_PIXEL_FORMAT_BLOB) {
             //FIXME??:Call function to store local copy of jpeg data for encode params.
             blob_request = 1;
@@ -4917,6 +4948,10 @@ no_error:
                 LOGE("Failed to set stream type mask in the parameters");
                 return BAD_VALUE;
             }
+            for (uint32_t i = 0; i < streamsArray.num_streams; i++) {
+                LOGH("Stream Id: %d and Buf Index: %d and framenum = %d", streamsArray.stream_request[i].streamID,
+                        streamsArray.stream_request[i].buf_index, frameNumber);
+            }
 
             rc = mCameraHandle->ops->set_parms(mCameraHandle->camera_handle,
                     mParameters);
@@ -4953,7 +4988,7 @@ no_error:
     // Added a timed condition wait
     struct timespec ts;
     uint8_t isValidTimeout = 1;
-    rc = clock_gettime(CLOCK_REALTIME, &ts);
+    rc = clock_gettime(CLOCK_MONOTONIC, &ts);
     if (rc < 0) {
       isValidTimeout = 0;
       LOGE("Error reading the real time clock!!");
@@ -5200,7 +5235,7 @@ int QCamera3HardwareInterface::flushPerf()
     }
 
     /* wait on a signal that buffers were received */
-    rc = clock_gettime(CLOCK_REALTIME, &timeout);
+    rc = clock_gettime(CLOCK_MONOTONIC, &timeout);
     if (rc < 0) {
         LOGE("Error reading the real time clock, cannot use timed wait");
     } else {
@@ -11209,6 +11244,14 @@ int QCamera3HardwareInterface::validateStreamRotations(
         bool isZsl = (newStream->stream_type == CAMERA3_STREAM_BIDIRECTIONAL &&
                 isImplDef);
 
+        if(newStream->rotation == -1) {
+            LOGE("ERROR: Invalid stream rotation requested for stream"
+                    "type %d and stream format: %d", newStream->stream_type,
+                    newStream->format);
+            rc = -EINVAL;
+            break;
+        }
+
         if (isRotated && (!isImplDef || isZsl)) {
             LOGE("Error: Unsupported rotation of %d requested for stream"
                     "type:%d and stream format:%d",
@@ -11724,8 +11767,12 @@ int32_t PendingBuffersMap::getBufErrStatus(buffer_handle_t *buffer)
 {
     for (auto& req : mPendingBuffersInRequest) {
         for (auto& k : req.mPendingBufferList) {
-            if (k.buffer == buffer)
+            if (k.buffer == buffer) {
+                if (k.bufStatus & CAMERA3_BUFFER_STATUS_ERROR) {
+                    LOGH("CAMERA3_BUFFER_STATUS_ERROR, buffer=%p", buffer);
+                }
                 return k.bufStatus;
+            }
         }
     }
     return CAMERA3_BUFFER_STATUS_OK;
