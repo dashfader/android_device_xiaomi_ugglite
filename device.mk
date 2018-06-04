@@ -16,7 +16,7 @@
 
 $(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 
-$(call inherit-product, vendor/xiaomi/rolex/rolex-vendor.mk)
+$(call inherit-product, vendor/xiaomi/ugglite/ugglite-vendor.mk)
 
 # HWUI
 $(call inherit-product, frameworks/native/build/phone-xxhdpi-3072-hwui-memory.mk)
@@ -101,9 +101,10 @@ PRODUCT_PACKAGES += \
 
 # Audio configuration
 PRODUCT_COPY_FILES += \
-	$(LOCAL_PATH)/audio/audio_effects.xml:system/vendor/etc/audio_effects.xml \
+	$(LOCAL_PATH)/audio/audio_effects.conf:system/vendor/etc/audio_effects.conf \
 	$(LOCAL_PATH)/audio/audio_output_policy.conf:system/vendor/etc/audio_output_policy.conf \
 	$(LOCAL_PATH)/audio/audio_policy.conf:system/vendor/etc/audio_policy.conf \
+	$(LOCAL_PATH)/audio/aanc_tuning_mixer.txt:system/vendor/etc/aanc_tuning_mixer.txt \
 	$(LOCAL_PATH)/audio/a2dp_audio_policy_configuration.xml:system/vendor/etc/a2dp_audio_policy_configuration.xml \
 	$(LOCAL_PATH)/audio/audio_platform_info.xml:system/vendor/etc/audio_platform_info.xml \
 	$(LOCAL_PATH)/audio/audio_platform_info_extcodec.xml:system/vendor/etc/audio_platform_info_extcodec.xml \
@@ -236,10 +237,9 @@ PRODUCT_PACKAGES += \
 
 # Input
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/keylayout/ft5346.kl:system/usr/keylayout/ft5346.kl \
+    $(LOCAL_PATH)/keylayout/fts_ts.kl:system/usr/keylayout/fts_ts.kl \
     $(LOCAL_PATH)/keylayout/goodix-ts.kl:system/usr/keylayout/goodix-ts.kl \
     $(LOCAL_PATH)/keylayout/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl \
-    $(LOCAL_PATH)/keylayout/msm8920-sku7-snd-card_Button_Jack.kl:system/usr/keylayout/msm8920-sku7-snd-card_Button_Jack.kl \
     $(LOCAL_PATH)/keylayout/qpnp_pon.kl:system/usr/keylayout/qpnp_pon.kl \
     $(LOCAL_PATH)/keylayout/synaptics_dsx.kl:system/usr/keylayout/synaptics_dsx.kl \
     $(LOCAL_PATH)/keylayout/synaptics_rmi4_i2c.kl:system/usr/keylayout/synaptics_rmi4_i2c.kl 
@@ -335,23 +335,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     init.baseband.sh \
     init.qcom.post_boot.sh
-
-# Releasetools
-TARGET_RELEASETOOLS_EXTENSIONS := device/xiaomi/rolex
-
-# Ship Firmware
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/firmware/adspso.bin:install/firmware-update/adspso.bin \
-    $(LOCAL_PATH)/firmware/cmnlib64.mbn:install/firmware-update/cmnlib64.mbn \
-    $(LOCAL_PATH)/firmware/cmnlib.mbn:install/firmware-update/cmnlib.mbn \
-    $(LOCAL_PATH)/firmware/devcfg.mbn:install/firmware-update/devcfg.mbn \
-    $(LOCAL_PATH)/firmware/emmc_appsboot.mbn:install/firmware-update/emmc_appsboot.mbn \
-    $(LOCAL_PATH)/firmware/keymaster.mbn:install/firmware-update/keymaster.mbn \
-    $(LOCAL_PATH)/firmware/lksecapp.mbn:install/firmware-update/lksecapp.mbn \
-    $(LOCAL_PATH)/firmware/NON-HLOS.bin:install/firmware-update/NON-HLOS.bin \
-    $(LOCAL_PATH)/firmware/rpm.mbn:install/firmware-update/rpm.mbn \
-    $(LOCAL_PATH)/firmware/sbl1.mbn:install/firmware-update/sbl1.mbn \
-    $(LOCAL_PATH)/firmware/tz.mbn:install/firmware-update/tz.mbn
 
 # RenderScript HAL
 PRODUCT_PACKAGES += \

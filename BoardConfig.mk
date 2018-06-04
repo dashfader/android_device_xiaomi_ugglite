@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-DEVICE_PATH := device/xiaomi/rolex
+DEVICE_PATH := device/xiaomi/ugglite
 
 TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/include
 
@@ -39,12 +39,12 @@ TARGET_USES_64_BIT_BINDER := true
 
 # Kernel
 BOARD_KERNEL_BASE := 0x80000000
-BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0 androidboot.hardware=qcom msm_rtb.filter=0x237 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 androidboot.bootdevice=7824900.sdhci earlycon=msm_hsl_uart,0x78B0000
+BOARD_KERNEL_CMDLINE := ignore_loglevel androidboot.console=ttyHSL0 androidboot.hardware=qcom msm_rtb.filter=0x237 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 androidboot.bootdevice=7824900.sdhci earlycon=msm_hsl_uart,0x78B0000
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
 BOARD_KERNEL_IMAGE_NAME := Image.gz-dtb
 BOARD_KERNEL_PAGESIZE :=  2048
 BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x01000000 --tags_offset 0x00000100
-TARGET_KERNEL_CONFIG := rolex_defconfig
+TARGET_KERNEL_CONFIG := ugglite_defconfig
 TARGET_KERNEL_SOURCE := kernel/xiaomi/msm8917
 
 # ANT+
@@ -165,9 +165,9 @@ DEVICE_MANIFEST_FILE := $(DEVICE_PATH)/manifest.xml
 DEVICE_MATRIX_FILE   := $(DEVICE_PATH)/compatibility_matrix.xml
 
 # Init
-TARGET_INIT_VENDOR_LIB := libinit_rolex
+TARGET_INIT_VENDOR_LIB := libinit_ugglite
 TARGET_PLATFORM_DEVICE_BASE := /devices/soc/
-TARGET_RECOVERY_DEVICE_MODULES := libinit_rolex
+TARGET_RECOVERY_DEVICE_MODULES := libinit_ugglite
 
 # HWUI
 HWUI_COMPILE_FOR_PERF := true
@@ -178,9 +178,6 @@ TARGET_PROVIDES_KEYMASTER := true
 # Lineage Hardware
 BOARD_HARDWARE_CLASS += \
     $(DEVICE_PATH)/lineagehw
-
-# Tap2Wake
-TARGET_TAP_TO_WAKE_NODE := "/proc/gesture/onoff"
 
 # Media
 TARGET_USES_MEDIA_EXTENSIONS := true
@@ -235,4 +232,4 @@ WIFI_DRIVER_FW_PATH_P2P := "p2p"
 WPA_SUPPLICANT_VERSION := VER_0_8_X
 
 # Inherit from the proprietary version
--include vendor/xiaomi/rolex/BoardConfigVendor.mk
+-include vendor/xiaomi/ugglite/BoardConfigVendor.mk

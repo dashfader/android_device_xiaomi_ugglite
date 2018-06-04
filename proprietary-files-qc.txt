@@ -344,6 +344,10 @@ vendor/lib/hw/sound_trigger.primary.msm8937.so
 vendor/lib64/vendor.qti.voiceprint@1.0.so
 vendor/lib64/hw/sound_trigger.primary.msm8937.so
 
+# Lights - from Santoni
+lib/hw/lights.msm8937.so
+lib64/hw/lights.msm8937.so
+
 # Media - from TA-1021 - OPR1.170623.026
 vendor/lib/libI420colorconvert.so
 vendor/lib/libAlacSwDec.so
