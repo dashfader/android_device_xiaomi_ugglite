@@ -155,6 +155,10 @@ PRODUCT_PACKAGES += \
     vendor.qti.hardware.camera.device@1.0 \
     vendor.qti.hardware.camera.device@1.0_vendor
 
+# shims
+PRODUCT_PACKAGES += \
+    libdisplayreceiver
+
 # Configstore
 PRODUCT_PACKAGES += \
     android.hardware.configstore@1.0-service
