@@ -175,6 +175,9 @@ HWUI_COMPILE_FOR_PERF := true
 # Keymaster
 TARGET_PROVIDES_KEYMASTER := true
 
+# Keylayouts
+TARGET_USES_HARDWARE_KEYS := true
+
 # Lights
 TARGET_PROVIDES_LIBLIGHT := true
 
