@@ -43,4 +43,7 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
 endif
 
 # Unofficial build ID
-TARGET_UNOFFICIAL_BUILD_ID := Mbtt
+TARGET_UNOFFICIAL_BUILD_ID := gabuters
+
+# Bootanim Resolution
+TARGET_BOOT_ANIMATION_RES := 720
