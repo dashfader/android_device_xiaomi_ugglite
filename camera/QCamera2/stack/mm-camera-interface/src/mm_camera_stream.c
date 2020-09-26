@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -32,6 +32,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <media/msm_media_info.h>
 #define TIME_H <SYSTEM_HEADER_PREFIX/time.h>
 #include TIME_H
@@ -968,8 +969,7 @@ static int32_t mm_stream_map_buf_ops(uint32_t frame_idx,
 {
     mm_stream_t *my_obj = (mm_stream_t *)userdata;
     return mm_stream_map_buf(my_obj,
-                             type,
-                             frame_idx, plane_idx, fd, size, buffer);
+            type, frame_idx, plane_idx, fd, size, buffer);
 }
 
 /*===========================================================================
@@ -1175,7 +1175,7 @@ int32_t mm_stream_streamon(mm_stream_t *my_obj)
             LOGD("waiting for mapping to done: strm fd = %d",
                      my_obj->fd);
             struct timespec ts;
-            clock_gettime(CLOCK_MONOTONIC, &ts);
+            clock_gettime(CLOCK_REALTIME, &ts);
             ts.tv_sec += WAIT_TIMEOUT;
             rc = pthread_cond_timedwait(&my_obj->buf_cond, &my_obj->buf_lock, &ts);
             if (rc == ETIMEDOUT) {
