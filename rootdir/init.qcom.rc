@@ -206,16 +206,6 @@ on boot
 
     # Create directory used for display
     mkdir /persist/display 0770 system graphics
-
-# DT2W
-on property:dt2w.enabled=1
-    write /proc/gesture/onoff 1
-	
-on property:dt2w.enabled=0
-    write /proc/gesture/onoff 0	
-
-    chmod 0660 /proc/gesture/onoff
-    chown system system /proc/gesture/onoff
 	
 # msm specific files that need to be created on /data
 on post-fs-data
@@ -1044,3 +1034,11 @@ service logdumpd /system/bin/logcat -b all -v threadtime -D -w /dev/block/bootde
 # Logdumpd is enabled only for userdebug non-perf build
 on property:ro.logdumpd.enabled=1
     start logdumpd
+
+on boot
+    chown system system /sys/devices/soc/78b7000.i2c/i2c-3/3-0038/fts_gesture_mode
+    chmod 660 /sys/devices/soc/78b7000.i2c/i2c-3/3-0038/fts_gesture_mode
+    chown system system /sys/goodix_gesture/gesture_enable
+    chmod 660 /sys/goodix_gesture/gesture_enable
+    write /sys/devices/soc/78b7000.i2c/i2c-3/3-0038/fts_gesture_mode 1
+    write /sys/goodix_gesture/gesture_enable 1
