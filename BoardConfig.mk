@@ -204,9 +204,6 @@ BLOCK_BASED_OTA := true
 # Peripheral manager
 TARGET_PER_MGR_ENABLED := true
 
-# Properties
-TARGET_SYSTEM_PROP := $(DEVICE_PATH)/system.prop
-
 # Qualcomm
 BOARD_USES_QCOM_HARDWARE := true
 BOARD_USES_QC_TIME_SERVICES := true
