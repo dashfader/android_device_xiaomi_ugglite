@@ -413,6 +413,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_SOONG_NAMESPACES += \
     device/xiaomi/ugglite
 
+# Soong
+PRODUCT_BOARD_PLATFORM := msm8996
+PRODUCT_USES_QCOM_HARDWARE := true
+PRODUCT_SOONG_NAMESPACES += $(LOCAL_PATH)
+
 # Telephony
 PRODUCT_PACKAGES += \
     telephony-ext
